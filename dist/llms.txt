@@ -1,0 +1,15 @@
+# ImageToVector
+
+> ImageToVector is an online image-to-SVG vectorizer. It turns logos, illustrations, and photos into color-reduced SVG artwork in the browser.
+
+## Main tool
+- [Image to SVG vectorizer](https://imagetovector.org/): Upload an image, select color and detail settings, generate an SVG, and download it.
+
+## Guides
+- [PNG to SVG](https://imagetovector.org/png-to-svg/)
+- [JPG to SVG](https://imagetovector.org/jpg-to-svg/)
+- [Logo to SVG](https://imagetovector.org/logo-to-svg/)
+- [Photo to SVG](https://imagetovector.org/photo-to-svg/)
+- [SVG vs PNG](https://imagetovector.org/svg-vs-png/)
+
+Image processing runs locally in the user's browser in this demo. Tracing is a color-reduced interpretation; results vary with source quality and settings.
