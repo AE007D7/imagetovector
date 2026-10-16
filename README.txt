@@ -16,4 +16,5 @@ Online preview
 - This project includes a Vercel serverless endpoint at /api/vectorize and serves the static site from dist/.
 - Set VECTORIZER_API_ID and VECTORIZER_API_SECRET as encrypted server-side environment variables in Vercel. Never add them to browser code or commit a .env file.
 - The online endpoint accepts image uploads up to 4 MB and keeps Vectorizer.AI test mode enabled. Test results are watermarked.
+- If the API credentials are missing, the tool falls back to browser-based tracing. This creates an approximate result locally; the image is not uploaded.
 - The endpoint applies a basic per-IP rate limit. Add persistent abuse controls and review provider billing/terms before enabling paid production mode.
