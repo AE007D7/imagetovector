@@ -1,15 +1,23 @@
 # ImageToVector
 
-> ImageToVector is an online image-to-SVG vectorizer. It turns logos, illustrations, and photos into color-reduced SVG artwork in the browser.
+> ImageToVector (imagetovector.org) is an online raster-to-vector interface using the official Vectorizer.AI API.
 
-## Main tool
-- [Image to SVG vectorizer](https://imagetovector.org/): Upload an image, select color and detail settings, generate an SVG, and download it.
+## Current capabilities
+- Input: PNG, JPG/JPEG, WebP, GIF and BMP, up to 4 MB.
+- Color and detail controls; SVG, PDF, EPS, DXF and PNG output options. PNG output is raster.
+- The current service uses free test mode. Outputs include a provider watermark.
+- Images are sent to Vectorizer.AI for processing; this is not an entirely local tool.
+- A US$4.99 one-time pack for 10 conversions is planned but paid checkout is not yet available.
+- Gallery images are supplied illustrative samples, not live conversions from this website.
+- Photo tracing produces a stylized interpretation. Results vary and may need cleanup.
 
-## Guides
-- [PNG to SVG](https://imagetovector.org/png-to-svg/)
-- [JPG to SVG](https://imagetovector.org/jpg-to-svg/)
-- [Logo to SVG](https://imagetovector.org/logo-to-svg/)
-- [Photo to SVG](https://imagetovector.org/photo-to-svg/)
-- [SVG vs PNG](https://imagetovector.org/svg-vs-png/)
-
-Image processing runs locally in the user's browser in this demo. Tracing is a color-reduced interpretation; results vary with source quality and settings.
+## Pages
+- [Image to vector converter](https://imagetovector.org/): Upload a PNG, JPG, WebP or GIF and try a watermarked SVG conversion.
+- [PNG to SVG](https://imagetovector.org/png-to-svg/): Transparency, flat-color graphics and PNG tracing.
+- [JPG to SVG](https://imagetovector.org/jpg-to-svg/): JPEG compression, clean edges and image preparation.
+- [Logo to SVG](https://imagetovector.org/logo-to-svg/): Convert logo artwork into editable vector paths.
+- [Photo to SVG](https://imagetovector.org/photo-to-svg/): Understand stylized photo tracing and detail.
+- [SVG vs PNG](https://imagetovector.org/svg-vs-png/): Compare raster pixels with scalable vector paths.
+- [Pricing](https://imagetovector.org/pricing/): Free tests and the upcoming US$4.99 conversion pack.
+- [About ImageToVector](https://imagetovector.org/about/): Processing, upload limits and current availability.
+- [Conversion guides](https://imagetovector.org/guides/): Practical image preparation and format guidance.
