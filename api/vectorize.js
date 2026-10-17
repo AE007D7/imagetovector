@@ -46,6 +46,8 @@ export default async function handler(req, res) {
     const incoming = await incomingRequest.formData();
     const file = incoming.get('image');
     const format = String(incoming.get('output.file_format') || 'svg').toLowerCase();
+    // Until verified subscription fulfillment is configured, expose only watermarked bitmap previews.
+    if (incoming.get('purpose') !== 'preview' || format !== 'png') return sendJson(res, 402, { error: 'Downloads require a verified active subscription. Checkout is not available yet.' });
     if (!(file instanceof Blob) || !file.size) return sendJson(res, 400, { error: 'Choose an image to vectorize.' });
     if (file.size > maxUpload) return sendJson(res, 413, { error: 'The upload must be 4 MB or smaller.' });
     if (!allowedFormats.has(format)) return sendJson(res, 400, { error: 'Choose SVG, PDF, EPS, DXF, or PNG output.' });

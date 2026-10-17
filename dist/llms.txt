@@ -5,9 +5,9 @@
 ## Current capabilities
 - Input: PNG, JPG/JPEG, WebP, GIF and BMP, up to 4 MB.
 - Color and detail controls; SVG, PDF, EPS, DXF and PNG output options. PNG output is raster.
-- The current service uses free test mode. Outputs include a provider watermark.
+- The current service uses preview mode. Outputs include a provider watermark.
 - Images are sent to Vectorizer.AI for processing; this is not an entirely local tool.
-- A US$4.99 one-time pack for 10 conversions is planned but paid checkout is not yet available.
+- A US$4.99 monthly subscription for 10 conversions each month is planned but paid checkout is not yet available.
 - Gallery images are supplied illustrative samples, not live conversions from this website.
 - Photo tracing produces a stylized interpretation. Results vary and may need cleanup.
 
@@ -18,6 +18,6 @@
 - [Logo to SVG](https://imagetovector.org/logo-to-svg/): Convert logo artwork into editable vector paths.
 - [Photo to SVG](https://imagetovector.org/photo-to-svg/): Understand stylized photo tracing and detail.
 - [SVG vs PNG](https://imagetovector.org/svg-vs-png/): Compare raster pixels with scalable vector paths.
-- [Pricing](https://imagetovector.org/pricing/): Free tests and the upcoming US$4.99 conversion pack.
+- [Pricing](https://imagetovector.org/pricing/): Previews and the upcoming US$4.99 subscription.
 - [About ImageToVector](https://imagetovector.org/about/): Processing, upload limits and current availability.
 - [Conversion guides](https://imagetovector.org/guides/): Practical image preparation and format guidance.

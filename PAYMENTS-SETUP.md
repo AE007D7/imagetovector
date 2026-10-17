@@ -21,3 +21,7 @@ These live links have been created but are deliberately not linked from the pric
 - Sandbox end-to-end verification before exposing live payment links.
 
 Current api/vectorize.js always uses test mode, and the site has no customer login or credit database. Stripe connector access is not a runtime secret for Vercel. No payment credentials are stored in the frontend.
+
+
+## Updated offer — October 17, 2026
+The approved offer is now USD 4.99/month for 10 conversions each month. Earlier one-time Stripe and PayPal links must not be used for this subscription. Public checkout remains disabled until recurring checkout, authenticated accounts, verified webhook fulfillment, and the monthly credit ledger are connected. Public conversion endpoints allow only watermarked PNG previews; SVG/PDF/EPS/DXF exports fail closed with HTTP 402. No paid entitlement is inferred from browser state or a return URL.
