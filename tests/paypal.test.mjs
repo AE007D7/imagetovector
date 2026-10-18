@@ -37,13 +37,14 @@ process.env.PAYPAL_CLIENT_ID='test-client';process.env.PAYPAL_CLIENT_SECRET='tes
 const {database}=await import('../lib/auth.js');
 const {paypalEntitlement}=await import('../lib/paypal.js');
 const {default:webhook}=await import('../api/paypal-webhook.js');
-const db=database();let queries=[],blocked=false,used=0,subOverride={},transactions=[payment],verify='SUCCESS';
+const db=database();let queries=[],blocked=false,used=0,subOverride={},transactions=[payment],verify='SUCCESS',recordExists=true;
 const actualNow=Date.now;const actualFetch=globalThis.fetch;
 Date.now=()=>Date.parse('2026-10-18T12:00:00Z');
 db.query=async(sql,args)=>{
   queries.push({sql,args});
   if(sql.includes('FROM paypal_config'))return {rows:[{plan_id:'P-TEST',webhook_id:'WH-TEST'}],rowCount:1};
-  if(sql.includes('FROM paypal_subscriptions'))return {rows:[{subscription_id:'I-TEST',user_id:'user1'}],rowCount:1};
+  if(sql.includes('FROM billing_customers'))return {rows:[{customer_id:'cus_test'}],rowCount:1};
+  if(sql.includes('FROM paypal_subscriptions'))return {rows:recordExists?[{subscription_id:'I-TEST',user_id:'user1'}]:[],rowCount:recordExists?1:0};
   if(sql.includes('FROM paypal_blocked_payments'))return {rows:blocked?[{payment_id:payment.id}]:[],rowCount:blocked?1:0};
   if(sql.includes('count(*)'))return {rows:[{used}],rowCount:1};
   return {rows:[],rowCount:0};
@@ -53,6 +54,7 @@ globalThis.fetch=async(url,options)=>{
   if(url.endsWith('/verify-webhook-signature'))return Response.json({verification_status:verify});
   if(url.includes('/transactions?'))return Response.json({transactions,total_pages:1});
   if(url.endsWith('/v1/billing/plans/P-TEST'))return Response.json(plan);
+  if(url.endsWith('/v1/billing/subscriptions') && options.method==='POST')return Response.json({id:'I-NEW',status:'APPROVAL_PENDING',links:[{rel:'approve',href:'https://www.paypal.com/webapps/billing/subscriptions?ba_token=test'}]});
   if(url.endsWith('/v1/billing/subscriptions/I-TEST'))return Response.json({id:'I-TEST',plan_id:'P-TEST',custom_id:'itv:user1',quantity:'1',status:'ACTIVE',start_time:'2026-10-01T00:00:00Z',...subOverride});
   throw Error(`Unexpected provider request ${url}`);
 };
@@ -78,5 +80,16 @@ test('signed refunds are durably recorded, including replayed events',async()=>{
   queries=[];const event={id:'EV-REFUND',event_type:'PAYMENT.SALE.REFUNDED',resource:{sale_id:'ABC123'}};
   assert.equal((await notify(event)).status,200);assert.equal((await notify(event)).status,200);
   const writes=queries.filter(q=>q.sql.startsWith('INSERT INTO paypal_blocked_payments'));assert.equal(writes.length,2);assert.ok(writes.every(q=>q.sql.includes('ON CONFLICT DO NOTHING')&&q.args[0]==='ABC123'));
+});
+test('starting PayPal expires old site card checkouts and rejects an existing card subscription',async()=>{
+  process.env.STRIPE_SECRET_KEY='sk_test_mock';process.env.STRIPE_PRICE_ID='price_test';process.env.STRIPE_WEBHOOK_SECRET='whsec_test';process.env.STRIPE_PORTAL_CONFIGURATION_ID='bpc_test';
+  const {stripe,checkout}=await import('../lib/billing.js');const client=stripe();let active=false,expired=[];
+  client.subscriptions.list=async()=>({data:active?[{status:'active',items:{data:[{price:{id:'price_test'}}]}}]:[]});
+  client.checkout.sessions.list=async()=>({data:[{id:'cs_ours',mode:'subscription',metadata:{site:'imagetovector.org'}},{id:'cs_other',mode:'subscription',metadata:{site:'other'}}]});
+  client.checkout.sessions.expire=async id=>{expired.push(id)};
+  db.connect=async()=>({query:db.query,release(){}});recordExists=false;
+  assert.match(await checkout({id:'user1'},'https://imagetovector.org','paypal'),/^https:\/\/www.paypal.com\//);
+  assert.deepEqual(expired,['cs_ours']);active=true;
+  await assert.rejects(checkout({id:'user1'},'https://imagetovector.org','paypal'),/already have a card subscription/);recordExists=true;
 });
 test.after(async()=>{Date.now=actualNow;globalThis.fetch=actualFetch;await db.end()});
