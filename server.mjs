@@ -6,6 +6,7 @@ import vectorize from './api/vectorize.js';
 import account from './api/account.js';
 import auth from './api/auth.js';
 import webhook from './api/stripe-webhook.js';
+import paypalWebhook from './api/paypal-webhook.js';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const staticRoot = resolve(root, 'dist');
@@ -40,6 +41,7 @@ createServer((req, res) => {
   if (path === '/api/vectorize') return void vectorize(req, res);
   if (path === '/api/account') return void account(req, res);
   if (path?.startsWith('/api/auth/')) return void auth(req, res);
+  if (path === '/api/paypal-webhook') return void paypalWebhook(req, res);
   if (path === '/api/stripe-webhook') return void webhook(req, res);
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end('Method not allowed'); return; }
   return void serveStatic(req, res);

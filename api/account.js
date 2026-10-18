@@ -1,5 +1,6 @@
 import { authReady, sessionFor, origin } from '../lib/auth.js';
-import { billingReady, entitlement, customerFor, stripe, checkout } from '../lib/billing.js';
+import { billingReady, stripeConfigured, entitlement, customerFor, stripe, checkout } from '../lib/billing.js';
+import { paypalConfigured, paypalConfig, paypalRecord, paypalManageURL } from '../lib/paypal.js';
 import { json, sameOrigin, body } from '../lib/http.js';
 export const config = { api: { bodyParser: false } };
 export default async function handler(req,res) {
@@ -9,14 +10,20 @@ export default async function handler(req,res) {
     const session=await sessionFor(req);
     if (req.method==='GET') {
       const billing=session && billingReady()?await entitlement(session.user):null;
-      return json(res,200,{ready:true,billingReady:billingReady(),user:session?{name:session.user.name,email:session.user.email}:null,billing});
+      return json(res,200,{ready:true,billingReady:billingReady(),stripeReady:billingReady() && stripeConfigured(),paypalReady:billingReady() && paypalConfigured() && Boolean((await paypalConfig())?.webhook_id),user:session?{name:session.user.name,email:session.user.email}:null,billing});
     }
     if (!sameOrigin(req)) return json(res,403,{error:'Open your account on this website to continue.'});
     if (!session) return json(res,401,{error:'Please sign in first.'});
     if (!billingReady()) return json(res,503,{error:'Subscriptions are not available yet.'});
     const { action }=JSON.parse((await body(req)).toString());
+    if (action==='paypal-checkout') return json(res,200,{url:await checkout(session.user,origin(),'paypal')});
+    if (action==='paypal-portal') {
+      if (!await paypalRecord(session.user)) return json(res,400,{error:'No PayPal subscription yet.'});
+      return json(res,200,{url:paypalManageURL()});
+    }
     if (action==='checkout') return json(res,200,{url:await checkout(session.user,origin())});
     if (action==='portal') {
+      if (!stripeConfigured()) return json(res,503,{error:'Card billing is not available.'});
       const customer=await customerFor(session.user);
       if (!customer) return json(res,400,{error:'No billing account yet.'});
       const portal=await stripe().billingPortal.sessions.create({customer,configuration:process.env.STRIPE_PORTAL_CONFIGURATION_ID,return_url:`${origin()}/account/`});

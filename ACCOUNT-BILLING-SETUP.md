@@ -37,3 +37,13 @@ Use `.env.example` for names, never commit values.
 No tests or payment transactions were run. Local package installation was blocked by DNS resolution to registry.npmjs.org. The code has not yet been deployed or exercised against a database. PayPal recurring billing is not implemented; its old one-time link remains disabled. Public previews still have the provider's test watermark. Tax collection has not been enabled; review registrations before enabling Stripe Tax.
 
 Files are not recoverable from this service after leaving the page. Each new export request consumes one conversion, including a new format. A failed provider request releases its reservation. Interrupted serverless reservations expire after five minutes; a lost connection after successful completion can still use one conversion.
+
+## PayPal monthly subscriptions
+- Set `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` as production secrets. Never put them in frontend code.
+- Production migration creates the `paypal_*` tables and verifies a US$4.99/month plan and signed webhook listener. Resource IDs are stored in PostgreSQL, keyed to the live/sandbox environment and a hash of the app client ID.
+- `PAYPAL_ENVIRONMENT` defaults to `live`. A sandbox deployment must use separate sandbox credentials and a separate database.
+- Authenticated checkout associates each subscription with the user on the server. A return URL never grants credits.
+- Account refresh and paid exports fetch merchant API subscription and transaction state. Only a completed USD 4.99 payment in the current anchored month grants the shared 10-conversion allowance. Refunded/reversed payments are blocked, webhook retries preserve usage, and cross-provider checkout checks prevent duplicate active subscriptions.
+- Customers manage/cancel PayPal renewals in their own PayPal automatic-payments dashboard. Already paid current-month credits remain usable after cancellation.
+- Pricing buttons remain disabled unless server billing, conversion and provider configuration are ready. `BILLING_ENABLED` remains the global launch switch.
+- Run `node --test tests/paypal.test.mjs`. These are mocked provider/database tests, not a completed payment or live export test.
