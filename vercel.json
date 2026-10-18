@@ -1,5 +1,12 @@
 {
   "version": 2,
   "framework": null,
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth"
+    }
+  ],
+  "buildCommand": "node scripts/migrate.mjs"
 }

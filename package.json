@@ -3,9 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --env-file=.env server.mjs"
+    "start": "node --env-file=.env server.mjs",
+    "db:migrate": "node --env-file=.env scripts/migrate.mjs"
   },
   "engines": {
     "node": ">=20.6"
+  },
+  "dependencies": {
+    "better-auth": "1.7.10",
+    "pg": "^8.16.3",
+    "stripe": "22.6.0"
   }
 }

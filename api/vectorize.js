@@ -1,6 +1,8 @@
-import { Readable } from 'node:stream';
+import { body as readBody, sameOrigin } from '../lib/http.js';
+import { sessionFor } from '../lib/auth.js';
+import { billingReady, reserve, settle } from '../lib/billing.js';
 
-export const config = { api: { bodyParser: false }, maxDuration: 60 };
+export const config = { api: { bodyParser: false }, maxDuration: 120 };
 
 const maxUpload = 4 * 1024 * 1024;
 const allowedFormats = new Set(['svg', 'pdf', 'eps', 'dxf', 'png']);
@@ -39,15 +41,19 @@ export default async function handler(req, res) {
     return sendJson(res, 415, { error: 'Upload the image as multipart form data.' });
   }
 
+  let reservation = null;
+  const controller = new AbortController();
+  const disconnected = () => { if (!res.writableFinished) controller.abort(); };
+  res.on('close', disconnected);
   try {
     const incomingRequest = new Request('https://imagetovector.org/api/vectorize', {
-      method: 'POST', headers: req.headers, body: Readable.toWeb(req), duplex: 'half'
+      method: 'POST', headers: req.headers, body: await readBody(req, maxUpload + 256_000)
     });
     const incoming = await incomingRequest.formData();
     const file = incoming.get('image');
     const format = String(incoming.get('output.file_format') || 'svg').toLowerCase();
-    // Until verified subscription fulfillment is configured, expose only watermarked bitmap previews.
-    if (incoming.get('purpose') !== 'preview' || format !== 'png') return sendJson(res, 402, { error: 'Downloads require a verified active subscription. Checkout is not available yet.' });
+    const paid = incoming.get('purpose') === 'download';
+    if (!paid && (incoming.get('purpose') !== 'preview' || format !== 'png')) return sendJson(res, 400, { error: 'Choose preview or download.' });
     if (!(file instanceof Blob) || !file.size) return sendJson(res, 400, { error: 'Choose an image to vectorize.' });
     if (file.size > maxUpload) return sendJson(res, 413, { error: 'The upload must be 4 MB or smaller.' });
     if (!allowedFormats.has(format)) return sendJson(res, 400, { error: 'Choose SVG, PDF, EPS, DXF, or PNG output.' });
@@ -57,27 +63,39 @@ export default async function handler(req, res) {
       return sendJson(res, 415, { error: 'Use a PNG, JPG, WebP, GIF, or BMP image.' });
     }
 
+    if (paid) {
+      if (!sameOrigin(req)) return sendJson(res, 403, { error: 'Download from the ImageToVector website.' });
+      if (!billingReady()) return sendJson(res, 503, { error: 'Paid downloads are not available yet.' });
+      const session = await sessionFor(req);
+      if (!session) return sendJson(res, 401, { error: 'Sign in to download your vector.' });
+      reservation = await reserve(session.user, String(incoming.get('request_id') || ''));
+    }
+
     const upstreamForm = new FormData();
     upstreamForm.append('image', new Blob([await file.arrayBuffer()], { type }), file.name || 'image');
     for (const key of ['processing.max_colors', 'input.max_pixels', 'output.draw_style', 'output.shape_stacking', 'output.group_by', 'output.gap_filler.enabled', 'output.strokes.stroke_width']) {
       const value = incoming.get(key);
       if (value !== null) upstreamForm.append(key, String(value));
     }
-    upstreamForm.set('mode', 'test');
+    upstreamForm.set('mode', paid ? 'production' : 'test');
+    upstreamForm.set('policy.retention_days', '0');
     upstreamForm.set('output.file_format', format);
 
     const auth = Buffer.from(`${apiId}:${apiSecret}`).toString('base64');
     const upstream = await fetch('https://api.vectorizer.ai/api/v1/vectorize', {
       method: 'POST', headers: { authorization: `Basic ${auth}` }, body: upstreamForm,
-      signal: AbortSignal.timeout(55_000)
+      signal: AbortSignal.any([AbortSignal.timeout(55_000), controller.signal])
     });
     const body = Buffer.from(await upstream.arrayBuffer());
     if (!upstream.ok) {
+      await settle(reservation, false); reservation = null;
       let message = `Vectorizer.AI returned ${upstream.status}.`;
       try { message = JSON.parse(body.toString('utf8'))?.error?.message || message; } catch {}
       return sendJson(res, upstream.status, { error: message });
     }
 
+    if (controller.signal.aborted) throw new DOMException('Cancelled', 'AbortError');
+    await settle(reservation, true); reservation = null;
     const types = { svg: 'image/svg+xml', png: 'image/png', pdf: 'application/pdf', eps: 'application/postscript', dxf: 'application/dxf' };
     res.writeHead(200, {
       'content-type': types[format], 'content-length': body.length,
@@ -85,6 +103,9 @@ export default async function handler(req, res) {
     });
     res.end(body);
   } catch (error) {
+    try { await settle(reservation, false); } catch {}
+    if (res.destroyed) return;
+    if (error.status) return sendJson(res, error.status, { error: error.message });
     const status = error?.name === 'TimeoutError' ? 504 : 400;
     sendJson(res, status, { error: status === 504 ? 'Vectorization took too long. Please try again.' : 'Could not read this upload. Please choose another image.' });
   }
