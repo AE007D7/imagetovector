@@ -1,4 +1,4 @@
-import { getMigrations } from 'better-auth/db';
+import { getMigrations } from 'better-auth/db/migration';
 import { getAuth, database } from '../lib/auth.js';
 if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
   console.log('Preview build: production schema migration skipped.');
