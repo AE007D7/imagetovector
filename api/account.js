@@ -9,8 +9,17 @@ export default async function handler(req,res) {
   try {
     const session=await sessionFor(req);
     if (req.method==='GET') {
-      const billing=session && billingReady()?await entitlement(session.user):null;
-      return json(res,200,{ready:true,billingReady:billingReady(),stripeReady:billingReady() && stripeConfigured(),paypalReady:billingReady() && paypalConfigured() && Boolean((await paypalConfig())?.webhook_id),user:session?{name:session.user.name,email:session.user.email}:null,billing});
+      let billing=null, billingWarning=null;
+      if (session && billingReady()) {
+        try { billing=await entitlement(session.user); }
+        catch(error) {
+          console.error('Billing lookup failed', {code:error.providerCode || error.code || 'unavailable'});
+          billingWarning='We could not refresh your subscription. You can still manage your account. Please retry shortly.';
+          const paypal=await paypalRecord(session.user).catch(()=>null);
+          billing={provider:paypal?'paypal':null,customer:Boolean(paypal),status:'unavailable',remaining:0,periodEnd:null};
+        }
+      }
+      return json(res,200,{ready:true,billingReady:billingReady(),stripeReady:billingReady() && stripeConfigured(),paypalReady:billingReady() && paypalConfigured() && Boolean((await paypalConfig())?.webhook_id),user:session?{name:session.user.name,email:session.user.email}:null,billing,billingWarning});
     }
     if (!sameOrigin(req)) return json(res,403,{error:'Open your account on this website to continue.'});
     if (!session) return json(res,401,{error:'Please sign in first.'});

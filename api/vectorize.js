@@ -63,6 +63,7 @@ export default async function handler(req, res) {
       return sendJson(res, 415, { error: 'Use a PNG, JPG, WebP, GIF, or BMP image.' });
     }
 
+    if (!sameOrigin(req)) return sendJson(res,403,{error:'Convert images from the ImageToVector website.'});
     if (paid) {
       if (!sameOrigin(req)) return sendJson(res, 403, { error: 'Download from the ImageToVector website.' });
       if (!billingReady()) return sendJson(res, 503, { error: 'Paid downloads are not available yet.' });
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
       const value = incoming.get(key);
       if (value !== null) upstreamForm.append(key, String(value));
     }
-    upstreamForm.set('mode', paid ? 'production' : 'test');
+    upstreamForm.set('mode', 'production');
     upstreamForm.set('policy.retention_days', '0');
     upstreamForm.set('output.file_format', format);
 
